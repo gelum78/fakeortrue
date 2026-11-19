@@ -73,6 +73,7 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
 <label for="claim" class="hide">Claim or news text</label>
 <textarea id="claim" maxlength="1000" placeholder="Paste the claim or headline you want to check"></textarea>
 <button class="btn" id="go-news">Check this claim</button>
+<button class="btn hide" id="go-deep" style="background:var(--panel);color:var(--text);border:1px solid var(--line);margin-left:8px">Analyze in depth (AI)</button>
 </div>
 
 <p class="msg" id="msg" role="status" aria-live="polite"></p>
@@ -146,20 +147,22 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
     });
     $('v-fine').textContent=kind==='photo'
       ?'“True” means no signs of AI generation were found. It does not prove a photo is genuine or unedited.'
+      :kind==='deep'
+      ?'AI analysis of web sources. It can make mistakes. Check the sources below before you decide.'
       :'Based on published fact-checks only. No result does not mean a claim is true or false.';
     result.classList.remove('hide');
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 
   function call(path,payload,btn,kind){
-    btn.disabled=true;msg.textContent='Checking…';result.classList.add('hide');
+    btn.disabled=true;if(kind!=='deep')msg.textContent='Checking…';result.classList.add('hide');
     return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
       .then(function(r){return r.json().then(function(d){return{ok:r.ok,s:r.status,d:d}})})
       .then(function(x){
         if(x.ok){msg.textContent='';show(x.d,kind);}
         else if(x.s===429){msg.textContent='Too many checks. Please wait a minute.';}
         else if(x.s===413){msg.textContent='That photo is too large.';}
-        else if(x.s===503){msg.textContent='News checking is not available yet.';}
+        else if(x.s===503){msg.textContent='This check is not available yet.';}
         else{msg.textContent='Something went wrong. Please try again.';}
       })
       .catch(function(){msg.textContent='Something went wrong. Please try again.';})
@@ -175,7 +178,14 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
   $('go-news').onclick=function(){
     var t=$('claim').value.trim();
     if(t.length<8){msg.textContent='Please paste a longer claim.';return;}
+    $('go-deep').classList.remove('hide');
     call('/api/check-news',{text:t,lang:(navigator.language||'').slice(0,2)},this,'news');
+  };
+  $('go-deep').onclick=function(){
+    var t=$('claim').value.trim();
+    if(t.length<8){msg.textContent='Please paste a longer claim.';return;}
+    msg.textContent='Analyzing with AI and searching the web. This can take up to a minute…';
+    call('/api/analyze-claim',{text:t},this,'deep');
   };
 })();
 </script>
