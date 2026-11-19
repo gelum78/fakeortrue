@@ -1,9 +1,11 @@
 // POST /api/waitlist  { email, lang?, source?, website? (honeypot) }
-// Saves the email to the Supabase table "waitlist" through the REST API.
-// Env vars (Vercel → Settings → Environment Variables):
-//   SUPABASE_URL          e.g. https://abcd1234.supabase.co
-//   SUPABASE_SECRET_KEY   the project's secret / service_role key (server only, never in the browser)
+// Calls the Supabase database function public.join_waitlist (see supabase/schema.sql).
+// The publishable key below is public by design: Row Level Security blocks every read
+// and write on the table; the key can only call join_waitlist, which only inserts.
+// Optional overrides (Vercel → Settings → Environment Variables): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY.
 
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://txtyojzboembjwledmwr.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_57y2WGhEwGTEAf7Q8BqvZw_mP-dbA0y';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 async function handler(req, res) {
@@ -25,31 +27,20 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'invalid_email' });
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return res.status(500).json({ error: 'not_configured' });
-
-  const headers = {
-    apikey: key,
-    'Content-Type': 'application/json',
-    Prefer: 'return=minimal,resolution=ignore-duplicates'
-  };
-  // Legacy service_role keys are JWTs and also go in Authorization; new sb_secret_ keys do not.
-  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`;
+  const headers = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+  if (SUPABASE_KEY.startsWith('eyJ')) headers.Authorization = `Bearer ${SUPABASE_KEY}`;
 
   try {
-    const r = await fetch(`${url.replace(/\/$/, '')}/rest/v1/waitlist?on_conflict=email`, {
+    const r = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/join_waitlist`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        email,
-        lang: String(body.lang || '').slice(0, 10) || null,
-        source: String(body.source || '').slice(0, 64) || null
+        p_email: email,
+        p_lang: String(body.lang || '').slice(0, 10) || null,
+        p_source: String(body.source || '').slice(0, 64) || null
       })
     });
-    if (!r.ok && r.status !== 409) {
-      return res.status(502).json({ error: 'storage_error' });
-    }
+    if (!r.ok) return res.status(502).json({ error: 'storage_error' });
     return res.status(200).json({ ok: true });
   } catch {
     return res.status(502).json({ error: 'storage_unreachable' });

@@ -11,14 +11,11 @@ supabase/schema.sql run once in Supabase → SQL Editor
 vercel.json         clean URLs + security headers
 ```
 
-## Setup
+## Setup (done)
 
-1. **Supabase** (region: Central EU / Frankfurt): SQL Editor → run `supabase/schema.sql`.
-2. **Vercel** → Project → Settings → Environment Variables:
-   - `SUPABASE_URL` = Project URL (Supabase → Project Settings → API / Data API)
-   - `SUPABASE_SECRET_KEY` = the **secret** key (or legacy `service_role` key). Never put it in the HTML.
-   Redeploy after adding them.
-3. **Domain**: Vercel → Settings → Domains → add `fakeortrue.app` and copy the DNS records it shows into Namecheap → Advanced DNS.
-4. Before going public: fill `[CUI]` and `[registered address]` in `privacy.html`, and create the mailbox `contact@fakeortrue.app`.
+- Supabase project `txtyojzboembjwledmwr` (eu-west-1): table `waitlist` + function `join_waitlist` from `supabase/schema.sql`.
+- `api/waitlist.js` calls `join_waitlist` with the publishable key (safe to be public: RLS blocks direct table access). No Vercel env vars needed.
+- Domain `fakeortrue.app` on the Vercel project; DNS at Namecheap.
+- Before going public: fill `[CUI]` and `[registered address]` in `privacy.html`, create mailbox `contact@fakeortrue.app`.
 
 Read the list: Supabase → Table Editor → `waitlist` (or export CSV).
