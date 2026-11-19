@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check a photo or news story — Fake or True</title>
+<meta name="description" content="Check if a photo is AI-made or a news claim has been fact-checked. Free, in seconds.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--ink:#FAF7F2;--panel:#FFFFFF;--soft:#F3EEE6;--line:#E7DFD3;--text:#1F1A16;--muted:#6B6158;--fake:#E4500E;--true:#2558E8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--text)}a:hover{color:var(--fake)}
+.wrap{max-width:720px;margin:0 auto;padding:0 24px}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;letter-spacing:-.02em;font-size:20px}
+.brand .f{color:var(--fake);font-weight:400}.brand .o{color:var(--text);font-weight:500;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border:1.5px solid var(--line);border-radius:999px;padding:1px 7px}.brand .t{color:var(--true)}
+h1{font-size:clamp(30px,5vw,44px);letter-spacing:-.03em;line-height:1.1;margin:24px 0 8px}
+.lead{color:var(--muted);font-size:18px;margin:0 0 28px}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tab{min-height:44px;padding:0 20px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font:inherit;font-weight:600;cursor:pointer;color:var(--text)}
+.tab[aria-selected=true]{background:var(--text);color:#FAF7F2;border-color:var(--text)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(60,40,20,.04),0 8px 24px rgba(60,40,20,.05)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:180px;border:2px dashed var(--line);border-radius:14px;background:var(--soft);cursor:pointer;text-align:center;padding:20px}
+.drop.over{border-color:var(--fake)}
+.drop input{display:none}
+.drop small{color:var(--muted)}
+.preview{max-width:100%;max-height:280px;border-radius:12px;display:none;margin:0 auto 16px}
+textarea{width:100%;min-height:150px;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;resize:vertical}
+textarea:focus{outline:2px solid var(--true);outline-offset:1px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border-radius:12px;border:0;font:inherit;font-weight:600;cursor:pointer;background:var(--text);color:#FAF7F2;margin-top:16px}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{margin:14px 0 0;font-weight:600;min-height:1.5em;color:#B53D0A}
+.hide{display:none}
+.verdict{margin-top:24px}
+.vrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.pill{display:inline-flex;padding:6px 16px;border-radius:999px;font-weight:700;letter-spacing:.04em;font-size:18px}
+.pill.fake{background:#FDE9DF;color:#B53D0A}.pill.true{background:#E4ECFD;color:#1E47C2}.pill.unclear{background:var(--soft);color:var(--muted)}
+.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;margin:6px 0 16px}
+.bar span{display:block;height:100%;background:var(--fake)}
+.bar.true span{background:var(--true)}.bar.unclear span{background:#A89E92}
+ul{margin:0;padding-left:20px;color:var(--muted)}li{margin:6px 0}
+.src{margin-top:14px;font-size:14px}.src a{display:block;margin:4px 0}
+.fine{font-size:13px;color:var(--muted);margin-top:16px}
+footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<a class="brand" href="/" aria-label="Fake or True home"><img src="logo-mark.svg" alt="" width="34" height="34"><span class="f">fake</span><span class="o">or</span><span class="t">true</span></a>
+</header>
+<main>
+<h1>Check before you share.</h1>
+<p class="lead">Upload a photo or paste a claim. You get a clear answer with the reasons.</p>
+
+<div class="tabs" role="tablist">
+<button class="tab" role="tab" id="tab-photo" aria-selected="true">Photo</button>
+<button class="tab" role="tab" id="tab-news" aria-selected="false">News or claim</button>
+</div>
+
+<div class="card" id="panel-photo">
+<img class="preview" id="preview" alt="Selected photo preview">
+<label class="drop" id="drop">
+<strong>Tap to choose a photo, or drop it here</strong>
+<small>JPG, PNG or WebP</small>
+<input type="file" id="file" accept="image/jpeg,image/png,image/webp">
+</label>
+<button class="btn" id="go-photo" disabled>Check this photo</button>
+</div>
+
+<div class="card hide" id="panel-news">
+<label for="claim" class="hide">Claim or news text</label>
+<textarea id="claim" maxlength="1000" placeholder="Paste the claim or headline you want to check"></textarea>
+<button class="btn" id="go-news">Check this claim</button>
+</div>
+
+<p class="msg" id="msg" role="status" aria-live="polite"></p>
+
+<div class="card verdict hide" id="result" aria-live="polite">
+<div class="vrow"><span class="pill" id="v-pill"></span><strong id="v-conf"></strong></div>
+<div class="bar" id="v-bar"><span id="v-fill"></span></div>
+<ul id="v-reasons"></ul>
+<div class="src" id="v-src"></div>
+<p class="fine" id="v-fine"></p>
+</div>
+</main>
+<footer>&copy; 2026 MEF AUTOMATION SRL &middot; Fake or True &middot; <a href="/privacy">Privacy</a></footer>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var file=null, MAX=3300000;
+  var msg=$('msg'), result=$('result');
+
+  function tab(which){
+    var photo=which==='photo';
+    $('tab-photo').setAttribute('aria-selected',photo);
+    $('tab-news').setAttribute('aria-selected',!photo);
+    $('panel-photo').classList.toggle('hide',!photo);
+    $('panel-news').classList.toggle('hide',photo);
+    result.classList.add('hide'); msg.textContent='';
+  }
+  $('tab-photo').onclick=function(){tab('photo')};
+  $('tab-news').onclick=function(){tab('news')};
+
+  function setFile(f){
+    if(!f)return;
+    if(!/^image\/(jpeg|png|webp)$/.test(f.type)){msg.textContent='Please choose a JPG, PNG or WebP photo.';return;}
+    file=f; msg.textContent=''; result.classList.add('hide');
+    var p=$('preview'); p.src=URL.createObjectURL(f); p.style.display='block';
+    $('go-photo').disabled=false;
+  }
+  $('file').onchange=function(e){setFile(e.target.files[0])};
+  var drop=$('drop');
+  ['dragover','dragenter'].forEach(function(n){drop.addEventListener(n,function(e){e.preventDefault();drop.classList.add('over')})});
+  ['dragleave','drop'].forEach(function(n){drop.addEventListener(n,function(e){e.preventDefault();drop.classList.remove('over')})});
+  drop.addEventListener('drop',function(e){setFile(e.dataTransfer.files[0])});
+
+  function toDataUrl(f){
+    return new Promise(function(resolve,reject){
+      if(f.size<=MAX){var r=new FileReader();r.onload=function(){resolve(r.result)};r.onerror=reject;r.readAsDataURL(f);return;}
+      var img=new Image();img.onload=function(){
+        var s=Math.min(1,1800/Math.max(img.width,img.height));
+        var c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        resolve(c.toDataURL('image/jpeg',0.88));
+      };img.onerror=reject;img.src=URL.createObjectURL(f);
+    });
+  }
+
+  function show(d,kind){
+    var v=d.verdict;
+    var label={fake:'FAKE',true:'TRUE',unclear:'UNCLEAR'}[v];
+    var pill=$('v-pill');pill.className='pill '+v;pill.textContent=label;
+    $('v-conf').textContent=d.confidence?('Confidence '+d.confidence+'%'):'';
+    $('v-bar').className='bar '+v;$('v-fill').style.width=(d.confidence||0)+'%';
+    var ul=$('v-reasons');ul.innerHTML='';
+    (d.reasons||[]).forEach(function(t){var li=document.createElement('li');li.textContent=t;ul.appendChild(li)});
+    var src=$('v-src');src.innerHTML='';
+    (d.sources||[]).forEach(function(s){
+      if(!/^https?:\/\//.test(s.url))return;
+      var a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';
+      a.textContent=(s.publisher?s.publisher+': ':'')+(s.rating||s.title||s.url);src.appendChild(a);
+    });
+    $('v-fine').textContent=kind==='photo'
+      ?'“True” means no signs of AI generation were found. It does not prove a photo is genuine or unedited.'
+      :'Based on published fact-checks only. No result does not mean a claim is true or false.';
+    result.classList.remove('hide');
+    result.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function call(path,payload,btn,kind){
+    btn.disabled=true;msg.textContent='Checking…';result.classList.add('hide');
+    return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){return r.json().then(function(d){return{ok:r.ok,s:r.status,d:d}})})
+      .then(function(x){
+        if(x.ok){msg.textContent='';show(x.d,kind);}
+        else if(x.s===429){msg.textContent='Too many checks. Please wait a minute.';}
+        else if(x.s===413){msg.textContent='That photo is too large.';}
+        else if(x.s===503){msg.textContent='News checking is not available yet.';}
+        else{msg.textContent='Something went wrong. Please try again.';}
+      })
+      .catch(function(){msg.textContent='Something went wrong. Please try again.';})
+      .finally(function(){btn.disabled=(kind==='photo'&&!file);});
+  }
+
+  $('go-photo').onclick=function(){
+    if(!file)return;
+    var b=this;
+    toDataUrl(file).then(function(u){return call('/api/check-image',{image:u},b,'photo')})
+      .catch(function(){msg.textContent='Could not read that photo.';});
+  };
+  $('go-news').onclick=function(){
+    var t=$('claim').value.trim();
+    if(t.length<8){msg.textContent='Please paste a longer claim.';return;}
+    call('/api/check-news',{text:t,lang:(navigator.language||'').slice(0,2)},this,'news');
+  };
+})();
+</script>
+</body>
+</html>
