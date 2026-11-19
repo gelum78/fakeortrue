@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FakeOrTrue — Check before you share</title>
+<meta name="description" content="FakeOrTrue tells you in seconds whether a photo or a news story looks fake, with the reasons and the sources. Join the waitlist.">
+<meta property="og:title" content="FakeOrTrue — Check before you share">
+<meta property="og:description" content="Is that photo AI-made? Is that story true? Check it in seconds.">
+<meta property="og:url" content="https://fakeortrue.app">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0B0D12">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--ink:#0B0D12;--panel:#12151C;--line:#232836;--text:#F2F4F8;--muted:#A3ABBD;--fake:#FF6B2C;--true:#2F7BFF;--dur:4s}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--text)}a:hover{color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;letter-spacing:-.02em;font-size:20px}
+.brand .f{color:var(--fake);font-weight:400}.brand .o{color:var(--muted);font-weight:400;font-size:15px}.brand .t{color:var(--true)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;border:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-primary{background:var(--true);color:#fff}.btn-primary:hover{background:#1F66E5;color:#fff}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line)}.btn-ghost:hover{border-color:var(--muted)}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:48px 0 72px}
+h1{font-size:clamp(40px,6vw,68px);line-height:1.02;letter-spacing:-.04em;margin:0 0 20px}
+h1 .fk{color:var(--fake);display:inline-block}
+h1 .tr{color:var(--true)}
+.lead{font-size:20px;color:var(--muted);margin:0 0 32px;max-width:34ch}
+form.wl{display:flex;gap:10px;flex-wrap:wrap;max-width:520px}
+form.wl label{position:absolute;left:-9999px}
+form.wl input[type=email]{flex:1 1 260px;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit}
+form.wl input[type=email]:focus{outline:2px solid var(--true);outline-offset:1px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.fine{font-size:13px;color:var(--muted);margin:12px 0 0;max-width:520px}
+.msg{margin:14px 0 0;font-weight:600;min-height:1.5em}
+.msg.ok{color:#7FB2FF}.msg.err{color:#FF9A6B}
+.share{display:none;gap:10px;flex-wrap:wrap;margin-top:12px}
+.share.on{display:flex}
+.mark{width:100%;max-width:420px;justify-self:center}
+section{padding:72px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(28px,4vw,40px);letter-spacing:-.03em;line-height:1.1;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 40px;max-width:60ch;font-size:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px}
+.card h3{margin:0 0 8px;font-size:20px;letter-spacing:-.01em}
+.card p{margin:0;color:var(--muted)}
+.num{display:inline-flex;width:36px;height:36px;border-radius:10px;align-items:center;justify-content:center;font-weight:700;margin-bottom:16px;background:#1A2030;color:var(--text)}
+.tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.verdict{max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px}
+.vrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+.pill.fake{background:rgba(255,107,44,.15);color:var(--fake)}
+.bar{height:8px;border-radius:4px;background:#1A2030;overflow:hidden;margin:6px 0 18px}
+.bar span{display:block;height:100%;width:var(--w);background:var(--fake)}
+.verdict ul{margin:0;padding-left:20px;color:var(--muted)}
+.verdict li{margin:6px 0}
+.ex{font-size:12px;color:var(--muted);margin-top:16px}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--muted);font-size:14px}
+footer .row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+/* logo animation (same as brand logo) */
+.anim{animation-duration:var(--dur);animation-iteration-count:infinite}
+.beam{animation-name:scan;animation-timing-function:cubic-bezier(.6,0,.4,1)}
+.check{stroke-dasharray:100;stroke-dashoffset:100;animation-name:draw;animation-timing-function:ease-out}
+.b1{animation-name:jit;animation-timing-function:steps(1,end)}
+.b2{animation-name:jit2;animation-timing-function:steps(1,end)}
+.b3{animation-name:jit3;animation-timing-function:steps(1,end)}
+.fk{animation-name:glitch;animation-timing-function:steps(1,end)}
+@keyframes scan{0%{transform:translateX(-78px);opacity:0}6%{opacity:1}40%{transform:translateX(78px);opacity:1}46%,100%{transform:translateX(78px);opacity:0}}
+@keyframes draw{0%,42%{stroke-dashoffset:100;opacity:1}56%,88%{stroke-dashoffset:0;opacity:1}97%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes jit{0%,100%{transform:translateX(0)}3%{transform:translateX(-14px)}5%{transform:translateX(9px)}7%{transform:translateX(-4px)}9%{transform:translateX(0)}18%{transform:translateX(12px)}20%{transform:translateX(-8px)}22%{transform:translateX(0)}33%{transform:translateX(-16px)}35%{transform:translateX(6px)}37%{transform:translateX(0)}60%{transform:translateX(-15px)}62%{transform:translateX(11px)}64%{transform:translateX(0)}74%{transform:translateX(10px)}76%{transform:translateX(-12px)}78%{transform:translateX(0)}}
+@keyframes jit2{0%,100%{transform:translateX(0)}4%{transform:translateX(12px)}6%{transform:translateX(-10px)}8%{transform:translateX(0)}24%{transform:translateX(15px)}26%{transform:translateX(-5px)}28%{transform:translateX(0)}40%{transform:translateX(-11px)}42%{transform:translateX(8px)}44%{transform:translateX(0)}66%{transform:translateX(14px)}68%{transform:translateX(-9px)}70%{transform:translateX(0)}80%{transform:translateX(-13px)}82%{transform:translateX(0)}}
+@keyframes jit3{0%,100%{transform:translateX(0)}2%{transform:translateX(-9px)}4%{transform:translateX(0)}11%{transform:translateX(13px)}13%{transform:translateX(-7px)}15%{transform:translateX(0)}27%{transform:translateX(-12px)}29%{transform:translateX(10px)}31%{transform:translateX(0)}58%{transform:translateX(-14px)}60%{transform:translateX(4px)}62%{transform:translateX(0)}73%{transform:translateX(-15px)}75%{transform:translateX(0)}}
+@keyframes glitch{0%,100%{transform:none;text-shadow:none}3%{transform:translate(-6px,2px) skewX(-14deg);text-shadow:7px 0 var(--true),-5px 0 #fff}5%{transform:translate(5px,-2px) skewX(10deg);text-shadow:-6px 0 var(--true)}7%{transform:translate(-3px,1px)}9%{transform:none;text-shadow:none}18%{transform:translate(6px,0) skewX(-8deg);text-shadow:-7px 0 var(--true)}20%{transform:translate(-4px,-1px)}22%{transform:none;text-shadow:none}60%{transform:translate(-5px,1px) skewX(-10deg);text-shadow:6px 0 var(--true),-4px 0 #fff}62%{transform:translate(6px,-2px)}64%{transform:none;text-shadow:none}74%{transform:translate(-6px,0) skewX(12deg);text-shadow:5px 0 var(--true)}76%{transform:none;text-shadow:none}}
+@media (prefers-reduced-motion:reduce){.anim{animation:none}.check{stroke-dashoffset:0}}
+@media (max-width:820px){.hero{grid-template-columns:1fr;padding-top:24px}.mark{max-width:260px;order:-1}.grid3,.grid2{grid-template-columns:1fr}section{padding:56px 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<a class="brand" href="/" aria-label="FakeOrTrue home"><span class="f">fake</span><span class="o">or</span><span class="t">true</span></a>
+<a class="btn btn-ghost" href="#join">Join the waitlist</a>
+</header>
+
+<main>
+<div class="hero">
+<div>
+<h1>Is it <span class="fk anim">fake</span><br>or <span class="tr">true</span>?</h1>
+<p class="lead">Check any photo or news story in seconds. Get a clear verdict, the reasons behind it, and the sources. Before you share it.</p>
+<form class="wl" id="join" novalidate>
+<label for="email">Email address</label>
+<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+<div class="hp" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<button class="btn btn-primary" type="submit">Get early access</button>
+</form>
+<p class="fine">Free. One email when the app launches on iOS, Android and the web. No spam. <a href="/privacy">Privacy</a>.</p>
+<p class="msg" id="msg" role="status" aria-live="polite"></p>
+<div class="share" id="share">
+<a class="btn btn-ghost" id="sh-wa" href="#" target="_blank" rel="noopener">Share on WhatsApp</a>
+<a class="btn btn-ghost" id="sh-x" href="#" target="_blank" rel="noopener">Share on X</a>
+<button class="btn btn-ghost" id="sh-copy" type="button">Copy link</button>
+</div>
+</div>
+<svg class="mark" viewBox="0 0 200 200" role="img" aria-label="FakeOrTrue logo: a lens, half glitched, half solid, with a checkmark">
+<defs>
+<clipPath id="lensL"><path d="M100 26 A74 74 0 0 0 100 174 Z"/></clipPath>
+<clipPath id="lens"><circle cx="100" cy="100" r="74"/></clipPath>
+</defs>
+<circle cx="100" cy="100" r="91" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
+<path d="M100 26 A74 74 0 0 1 100 174 Z" fill="var(--true)"/>
+<g clip-path="url(#lensL)" fill="var(--fake)">
+<rect class="b1 anim" x="22" y="26" width="80" height="10"/><rect class="b2 anim" x="22" y="40" width="80" height="10"/><rect class="b3 anim" x="22" y="54" width="80" height="10"/><rect class="b1 anim" x="22" y="68" width="80" height="10"/><rect class="b3 anim" x="22" y="82" width="80" height="10"/><rect class="b2 anim" x="22" y="96" width="80" height="10"/><rect class="b1 anim" x="22" y="110" width="80" height="10"/><rect class="b3 anim" x="22" y="124" width="80" height="10"/><rect class="b2 anim" x="22" y="138" width="80" height="10"/><rect class="b1 anim" x="22" y="152" width="80" height="10"/><rect class="b3 anim" x="22" y="166" width="80" height="10"/>
+</g>
+<g clip-path="url(#lens)"><rect class="beam anim" x="98.5" y="20" width="3" height="160" rx="1.5" fill="#fff"/></g>
+<path class="check anim" d="M110 101 L125 117 L153 85" pathLength="100" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</div>
+
+<section aria-labelledby="how">
+<h2 id="how">How it works</h2>
+<p class="sub">No copy-paste. Share straight from WhatsApp, Facebook, TikTok or X.</p>
+<div class="grid3">
+<div class="card"><div class="num">1</div><h3>Share it to FakeOrTrue</h3><p>A photo, a link or a piece of text you received and are not sure about.</p></div>
+<div class="card"><div class="num">2</div><h3>We check the signals</h3><p>Signs of AI generation, the photo's origin data, older copies on the web, and what trusted sources say about the claim.</p></div>
+<div class="card"><div class="num">3</div><h3>Get a clear answer</h3><p>Fake, Unclear or True, with a confidence score and the reasons. Send the result card back where the fake came from.</p></div>
+</div>
+</section>
+
+<section aria-labelledby="what">
+<div class="grid2">
+<div>
+<h2 id="what">What it checks</h2>
+<p class="sub">At launch: photos and news. Video and voice messages come next.</p>
+<div class="card" style="margin-bottom:20px"><span class="tag">Photos</span><h3>AI-made or edited?</h3><p>Detects signs of image generators, reads Content Credentials (C2PA) and finds where the photo first appeared online.</p></div>
+<div class="card"><span class="tag">News &amp; claims</span><h3>True, false or out of context?</h3><p>Pulls out the claims and compares them with trusted sources and existing fact-checks, in any language.</p></div>
+</div>
+<div>
+<div class="verdict" aria-label="Example result card">
+<div class="vrow"><span class="pill fake">FAKE</span><strong>Example result</strong></div>
+<div>Confidence</div>
+<div class="bar" style="--w:80%"><span></span></div>
+<ul>
+<li>Strong signs of an AI image generator</li>
+<li>No camera origin data (C2PA)</li>
+<li>Not found anywhere online before this week</li>
+</ul>
+<p class="ex">Illustration of how a result will look. When the evidence is weak, the answer is "Unclear", never a guess.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="cta">
+<h2 id="cta">Be first to try it</h2>
+<p class="sub">Join the waitlist and get access before the public launch.</p>
+<a class="btn btn-primary" href="#join">Join the waitlist</a>
+</section>
+</main>
+
+<footer>
+<div class="row">
+<span>&copy; 2026 MEF AUTOMATION SRL &middot; FakeOrTrue</span>
+<span><a href="/privacy">Privacy</a> &middot; <a href="mailto:contact@fakeortrue.app">contact@fakeortrue.app</a></span>
+</div>
+</footer>
+</div>
+
+<script>
+(function(){
+  var form=document.getElementById('join'),msg=document.getElementById('msg'),share=document.getElementById('share');
+  var url='https://fakeortrue.app',text='Is it fake or true? Check photos and news before you share them:';
+  document.getElementById('sh-wa').href='https://wa.me/?text='+encodeURIComponent(text+' '+url);
+  document.getElementById('sh-x').href='https://x.com/intent/post?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(url);
+  document.getElementById('sh-copy').addEventListener('click',function(){
+    if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){msg.textContent='Link copied.';msg.className='msg ok';});}
+  });
+  var params=new URLSearchParams(location.search);
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var email=form.email.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg.textContent='Please enter a valid email address.';msg.className='msg err';return;}
+    var btn=form.querySelector('button');btn.disabled=true;msg.textContent='Saving…';msg.className='msg';
+    fetch('/api/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email,website:form.website.value,lang:(navigator.language||'').slice(0,10),source:params.get('ref')||params.get('utm_source')||''})})
+    .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+    .then(function(x){
+      if(x.ok){msg.textContent='You’re on the list. Help a friend avoid the next fake:';msg.className='msg ok';share.className='share on';form.reset();}
+      else{msg.textContent=x.d.error==='invalid_email'?'Please enter a valid email address.':'Something went wrong. Please try again.';msg.className='msg err';}
+    })
+    .catch(function(){msg.textContent='Something went wrong. Please try again.';msg.className='msg err';})
+    .finally(function(){btn.disabled=false;});
+  });
+})();
+</script>
+</body>
+</html>
