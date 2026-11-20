@@ -42,6 +42,9 @@ textarea:focus{outline:2px solid var(--true);outline-offset:1px}
 ul{margin:0;padding-left:20px;color:var(--muted)}li{margin:6px 0}
 .src{margin-top:14px;font-size:14px}.src a{display:block;margin:4px 0}
 .fine{font-size:13px;color:var(--muted);margin-top:16px}
+.shares{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.shares .btn{margin-top:0;min-height:44px}
+.btn.alt{background:var(--panel);color:var(--text);border:1px solid var(--line)}
 footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
 </style>
 </head>
@@ -84,6 +87,11 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
 <ul id="v-reasons"></ul>
 <div class="src" id="v-src"></div>
 <p class="fine" id="v-fine"></p>
+<div class="shares">
+<button class="btn" id="sh-share" type="button">Share result</button>
+<button class="btn alt" id="sh-dl" type="button">Download image</button>
+<button class="btn alt" id="sh-copy" type="button">Copy link</button>
+</div>
 </div>
 </main>
 <footer>&copy; 2026 MEF AUTOMATION SRL &middot; Fake or True &middot; <a href="/privacy">Privacy</a></footer>
@@ -131,7 +139,9 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
     });
   }
 
+  var last=null;
   function show(d,kind){
+    last={d:d,kind:kind};
     var v=d.verdict;
     var label={fake:'FAKE',true:'TRUE',unclear:'UNCLEAR'}[v];
     var pill=$('v-pill');pill.className='pill '+v;pill.textContent=label;
@@ -155,7 +165,7 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
   }
 
   function call(path,payload,btn,kind){
-    btn.disabled=true;if(kind!=='deep')msg.textContent='Checking…';result.classList.add('hide');
+    btn.disabled=true;msg.style.color='';if(kind!=='deep')msg.textContent='Checking…';result.classList.add('hide');
     return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
       .then(function(r){return r.json().then(function(d){return{ok:r.ok,s:r.status,d:d}})})
       .then(function(x){
@@ -168,6 +178,114 @@ footer{padding:40px 0 48px;color:var(--muted);font-size:14px}
       .catch(function(){msg.textContent='Something went wrong. Please try again.';})
       .finally(function(){btn.disabled=(kind==='photo'&&!file);});
   }
+
+
+  // ---------- shareable result card (drawn in the browser, nothing is uploaded) ----------
+  var SITE='https://fakeortrue.app';
+  var COL={fake:'#E4500E',true:'#2558E8',unclear:'#8C8173'};
+  function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+  function wrap(c,text,x,y,maxW,lh,maxLines){
+    var words=String(text).split(/\s+/),line='',n=0;
+    for(var i=0;i<words.length;i++){
+      var t=line?line+' '+words[i]:words[i];
+      if(c.measureText(t).width>maxW&&line){
+        n++; if(n>=maxLines){c.fillText(line+'…',x,y);return y+lh;}
+        c.fillText(line,x,y);y+=lh;line=words[i];
+      } else line=t;
+    }
+    c.fillText(line,x,y);return y+lh;
+  }
+  function lens(c,cx,cy,r){
+    c.save();c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.clip();
+    c.fillStyle='#2558E8';c.fillRect(cx,cy-r,r,2*r);
+    c.fillStyle='#E4500E';
+    var bh=r/6.2;
+    for(var y=cy-r;y<cy+r;y+=bh*1.4){c.fillRect(cx-r,y,r,bh);}
+    c.restore();
+    c.strokeStyle='#fff';c.lineWidth=r*0.15;c.lineCap='round';c.lineJoin='round';
+    c.beginPath();c.moveTo(cx+r*0.15,cy+r*0.02);c.lineTo(cx+r*0.38,cy+r*0.28);c.lineTo(cx+r*0.78,cy-r*0.2);c.stroke();
+  }
+  function makeCard(){
+    return new Promise(function(resolve){
+      var W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+      var c=cv.getContext('2d'),d=last.d,v=d.verdict,F='system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+      c.fillStyle='#FAF7F2';c.fillRect(0,0,W,H);
+      // header
+      lens(c,110,110,46);
+      c.textBaseline='alphabetic';c.font='400 44px '+F;c.fillStyle='#E4500E';c.fillText('fake',176,125);
+      var fw=c.measureText('fake').width;
+      c.font='500 26px ui-monospace,Menlo,monospace';c.fillStyle='#1F1A16';c.fillText('or',176+fw+14,122);
+      var ow=c.measureText('or').width;
+      c.font='700 44px '+F;c.fillStyle='#2558E8';c.fillText('true',176+fw+14+ow+14,125);
+      // card
+      c.save();c.shadowColor='rgba(60,40,20,.12)';c.shadowBlur=40;c.shadowOffsetY=16;
+      c.fillStyle='#fff';rr(c,60,200,960,980,36);c.fill();c.restore();
+      c.strokeStyle='#E7DFD3';c.lineWidth=2;rr(c,60,200,960,980,36);c.stroke();
+      var y=250;
+      function finish(){
+        // verdict pill
+        var label={fake:'FAKE',true:'TRUE',unclear:'UNCLEAR'}[v];
+        c.font='800 96px '+F;var tw=c.measureText(label).width;
+        c.fillStyle=COL[v];rr(c,110,y,tw+80,140,70);c.fill();
+        c.fillStyle='#fff';c.fillText(label,150,y+102);
+        if(d.confidence){c.fillStyle='#1F1A16';c.font='700 56px '+F;c.textAlign='right';c.fillText(d.confidence+'%',970,y+98);c.textAlign='left';
+          c.fillStyle='#6B6158';c.font='400 26px '+F;c.textAlign='right';c.fillText('confidence',970,y+134);c.textAlign='left';}
+        y+=190;
+        c.fillStyle='#F3EEE6';rr(c,110,y,860,14,7);c.fill();
+        c.fillStyle=COL[v];rr(c,110,y,Math.max(14,860*(d.confidence||0)/100),14,7);c.fill();
+        y+=70;
+        c.fillStyle='#1F1A16';c.font='400 36px '+F;
+        var rs=(d.reasons||[]).slice(0,3);
+        for(var i=0;i<rs.length;i++){
+          c.fillStyle=COL[v];c.beginPath();c.arc(124,y-12,7,0,7);c.fill();
+          c.fillStyle='#1F1A16';
+          y=wrap(c,rs[i],150,y,820,48,3)+14;
+          if(y>1090)break;
+        }
+        // footer
+        c.fillStyle='#6B6158';c.font='400 26px '+F;
+        c.fillText(last.kind==='photo'?'AI check of a photo. “True” = no signs of AI found.':'Check based on fact-checks and web sources.',110,1148);
+        c.fillStyle='#1F1A16';c.font='700 40px '+F;c.textAlign='center';
+        c.fillText('Check before you share.',W/2,1250);
+        c.fillStyle='#E4500E';c.font='600 34px '+F;c.fillText('fakeortrue.app',W/2,1304);c.textAlign='left';
+        cv.toBlob(function(b){resolve(b)},'image/png');
+      }
+      if(last.kind==='photo'&&file){
+        var img=new Image();img.onload=function(){
+          var bw=860,bh=300,s=Math.max(bw/img.width,bh/img.height),sw=bw/s,sh=bh/s;
+          c.save();rr(c,110,y,bw,bh,24);c.clip();
+          c.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,110,y,bw,bh);c.restore();
+          y+=bh+36;finish();
+        };img.onerror=finish;img.src=URL.createObjectURL(file);
+      } else finish();
+    });
+  }
+  function shareText(){
+    var d=last.d,l={fake:'FAKE',true:'TRUE',unclear:'UNCLEAR'}[d.verdict];
+    return 'Fake or True says: '+l+(d.confidence?' ('+d.confidence+'%)':'')+'. Check before you share:';
+  }
+  $('sh-share').onclick=function(){
+    if(!last)return;
+    makeCard().then(function(blob){
+      var f=new File([blob],'fake-or-true.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){
+        return navigator.share({files:[f],text:shareText()+' '+SITE}).catch(function(){});
+      }
+      if(navigator.share){return navigator.share({text:shareText(),url:SITE}).catch(function(){});}
+      download(blob);
+    });
+  };
+  function download(blob){
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='fake-or-true.png';
+    document.body.appendChild(a);a.click();a.remove();
+  }
+  $('sh-dl').onclick=function(){if(last)makeCard().then(download);};
+  $('sh-copy').onclick=function(){
+    if(!last)return;
+    var t=shareText()+' '+SITE;
+    if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){msg.textContent='Copied.';msg.style.color='#1E47C2'});}
+  };
+  window.__makeCard=makeCard;
 
   $('go-photo').onclick=function(){
     if(!file)return;
